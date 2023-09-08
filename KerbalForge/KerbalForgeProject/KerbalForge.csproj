@@ -7,7 +7,7 @@
         <ImplicitUsings>true</ImplicitUsings>
         <AssemblyName>com.github.cvusmo.kerbalforge</AssemblyName>
         <Product>KerbalForge</Product>
-        <Description>Kerbal Forge/Description></Description>
+        <Description>Kerbal Forge</Description>
         <Version>0.1.0</Version>
         <RestoreAdditionalProjectSources>
             https://nuget.spacewarp.org/v3/index.json
