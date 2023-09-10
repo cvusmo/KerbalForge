@@ -1,15 +1,15 @@
 {
+  "spec": "1.3",
   "mod_id": "com.github.cvusmo.kerbalforge",
   "author": "cvusmo",
-  "name": "Kerbal Forge",
+  "name": "KerbalForge",
   "description": "Reusable Re-Entry Systems",
-  "source": "",
+  "source": "https://github.com/cvusmo/KerbalForge",
   "version": "0.1.0",
-  "spec": "1.3",
   "version_check": "",
   "dependencies": [
     {
-      "id": "com.github.x606.spacewarp",
+      "id":  "com.github.x606.spacewarp",
       "version": {
         "min": "1.4.*",
         "max": "*"
