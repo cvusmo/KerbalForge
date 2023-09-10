@@ -1,118 +1,52 @@
 ﻿using BepInEx;
-using HarmonyLib;
-using KSP.UI.Binding;
+using BepInEx.Logging;
+using KerbalForge.Modules;
 using SpaceWarp;
-using SpaceWarp.API.Assets;
 using SpaceWarp.API.Mods;
-using SpaceWarp.API.Game;
-using SpaceWarp.API.Game.Extensions;
-using SpaceWarp.API.UI;
-using SpaceWarp.API.UI.Appbar;
-using UnityEngine;
 
-namespace KerbalForge;
-
-[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-[BepInDependency(SpaceWarpPlugin.ModGuid, SpaceWarpPlugin.ModVer)]
-public class KerbalForgePlugin : BaseSpaceWarpPlugin
+namespace KerbalForge
 {
-    // These are useful in case some other mod wants to add a dependency to this one
-    public const string ModGuid = MyPluginInfo.PLUGIN_GUID;
-    public const string ModName = MyPluginInfo.PLUGIN_NAME;
-    public const string ModVer = MyPluginInfo.PLUGIN_VERSION;
-    
-    private bool _isWindowOpen;
-    private Rect _windowRect;
-
-    private const string ToolbarFlightButtonID = "BTN-KerbalForgeFlight";
-    private const string ToolbarOABButtonID = "BTN-KerbalForgeOAB";
-
-    public static KerbalForgePlugin Instance { get; set; }
-
-    /// <summary>
-    /// Runs when the mod is first initialized.
-    /// </summary>
-    public override void OnInitialized()
+    [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+    [BepInDependency(SpaceWarpPlugin.ModGuid, SpaceWarpPlugin.ModVer)]
+    public class KerbalForgePlugin : BaseSpaceWarpPlugin
     {
-        base.OnInitialized();
+        public const string ModGuid = MyPluginInfo.PLUGIN_GUID;
+        public const string ModName = MyPluginInfo.PLUGIN_NAME;
+        public const string ModVer = MyPluginInfo.PLUGIN_VERSION;
 
-        Instance = this;
+        internal readonly ManualLogSource _logger = BepInEx.Logging.Logger.CreateLogSource("KerbalForgePlugin");
 
-        // Register Flight AppBar button
-        Appbar.RegisterAppButton(
-            "KerbalForge",
-            ToolbarFlightButtonID,
-            AssetManager.GetAsset<Texture2D>($"{SpaceWarpMetadata.ModID}/images/icon.png"),
-            isOpen =>
-            {
-                _isWindowOpen = isOpen;
-                GameObject.Find(ToolbarFlightButtonID)?.GetComponent<UIValue_WriteBool_Toggle>()?.SetValue(isOpen);
-            }
-        );
-
-        // Register OAB AppBar Button
-        Appbar.RegisterOABAppButton(
-            "KerbalForge",
-            ToolbarOABButtonID,
-            AssetManager.GetAsset<Texture2D>($"{SpaceWarpMetadata.ModID}/images/icon.png"),
-            isOpen =>
-            {
-                _isWindowOpen = isOpen;
-                GameObject.Find(ToolbarOABButtonID)?.GetComponent<UIValue_WriteBool_Toggle>()?.SetValue(isOpen);
-            }
-        );
-
-        // Register all Harmony patches in the project
-        Harmony.CreateAndPatchAll(typeof(KerbalForgePlugin).Assembly);
-
-        // Try to get the currently active vessel, set its throttle to 100% and toggle on the landing gear
-        try
+        private Module_Deployment _moduleDeployment;
+        internal static KerbalForgePlugin Instance { get; set; }
+        public static string Path { get; private set; }
+        public KerbalForgePlugin()
         {
-            var currentVessel = Vehicle.ActiveVesselVehicle;
-            if (currentVessel != null)
+            if (Instance != null)
             {
-                currentVessel.SetMainThrottle(1.0f);
-                currentVessel.SetGearState(true);
+                throw new Exception("KerbalForgePlugin is a singleton and cannot have multiple instances!");
             }
+            Instance = this;
         }
-        catch (Exception e) {}
-        
-        // Fetch a configuration value or create a default one if it does not exist
-        var defaultValue = "my_value";
-        var configValue = Config.Bind<string>("Settings section", "Option 1", defaultValue, "Option description");
-        
-        // Log the config value into <KSP2 Root>/BepInEx/LogOutput.log
-        Logger.LogInfo($"Option 1: {configValue.Value}");
-    }
-
-    /// <summary>
-    /// Draws a simple UI window when <code>this._isWindowOpen</code> is set to <code>true</code>.
-    /// </summary>
-    private void OnGUI()
-    {
-        // Set the UI
-        GUI.skin = Skins.ConsoleSkin;
-
-        if (_isWindowOpen)
+        public override void OnPreInitialized()
         {
-            _windowRect = GUILayout.Window(
-                GUIUtility.GetControlID(FocusType.Passive),
-                _windowRect,
-                FillWindow,
-                "KerbalForge",
-                GUILayout.Height(350),
-                GUILayout.Width(350)
-            );
+            Path = this.PluginFolderPath;
+            base.OnPreInitialized();
+            _logger.LogInfo("OnPreInitialized KerbalForgePlugin.");
         }
-    }
+        public override void OnInitialized()
+        {
+            Logger.LogDebug("Kerbal Forge initializing...");
+            base.OnInitialized();
 
-    /// <summary>
-    /// Defines the content of the UI window drawn in the <code>OnGui</code> method.
-    /// </summary>
-    /// <param name="windowID"></param>
-    private static void FillWindow(int windowID)
-    {
-        GUILayout.Label("KerbalForge - Reusable Re-Entry Systems");
-        GUI.DragWindow(new Rect(0, 0, 10000, 500));
+            Instance = this;
+            _moduleDeployment = new Module_Deployment();
+
+            LogInit();
+        }
+        private void LogInit()
+        {
+            Logger.LogDebug("Kerbal Forge initialized successfully");
+            Logger.LogDebug("Module_Deployment initialized successfully.");
+        }
     }
 }
