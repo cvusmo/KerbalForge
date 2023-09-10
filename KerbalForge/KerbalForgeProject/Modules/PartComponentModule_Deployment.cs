@@ -17,7 +17,7 @@ namespace KerbalForge.Modules
         {
             if (!this.DataModules.TryGetByType<Data_Deployment>(out this._dataDeployment))
             {
-                KerbalForgePlugin.Instance.SWLogger.LogInfo("Unable to find a Data_Deployable in the PartComponentModule for " + base.Part.PartName);
+                KerbalForgePlugin.Instance.SWLogger.LogError("Unable to find a Data_Deployable in the PartComponentModule for " + base.Part.PartName);
                 return;
             }
         }

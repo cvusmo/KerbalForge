@@ -17,6 +17,6 @@ namespace KerbalForge.Modules
 
         [LocalizedField("Deploy Heat Shield")]
         [Tooltip("Current Heat Shield State")]
-        public ModuleProperty<bool> IsDeployed = new ModuleProperty<bool>(false, false);
+        public ModuleProperty<bool> isDeployed = new ModuleProperty<bool>(false, false);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using I2.Loc;
 using KSP.Modules;
 using UnityEngine;
+using KerbalForge;
 
 namespace KerbalForge.Modules
 {
@@ -9,49 +10,57 @@ namespace KerbalForge.Modules
     {
         [SerializeField]
         private Data_Deployment _dataDeployment = new Data_Deployment();
-
-        private Module_Deployable deployable;
-        public Animator deploymentAnimator;
-        public bool IsDeployed
+        public bool isDeployed
         {
-            get => _dataDeployment.IsDeployed.GetValue();
+            get => _dataDeployment.isDeployed.GetValue();
             set
             {
-                if (value != IsDeployed)
+                if (value != isDeployed)
                 {
-                    _dataDeployment.IsDeployed.SetValue(value);
+                    _dataDeployment.isDeployed.SetValue(value);
                     OnDeployedStateChanged(value);
+                    Debug.Log($"IsDeployed has been set to: {value}");
                 }
             }
         }
-        string ToStringDelegate(object obj) => IsDeployed ? "Deployed" : "Retracted";
+        string ToStringDelegate(object obj) => isDeployed ? "Deployed" : "Retracted";
         public override Type PartComponentModuleType => typeof(PartComponentModule_Deployment);
         public override void OnInitialize()
         {
+            KerbalForgePlugin.Instance._logger.LogInfo("Initializing Module_Deployment...");
             base.OnInitialize();
 
             InitializeComponents();
             RegisterActions();
             UpdateDeployment();
+            KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized!");
         }
         private void InitializeComponents()
         {
-            deployable = GetComponent<Module_Deployable>();
-            if (deployable == null)
+            this.animator = GetComponentInChildren<Animator>(true);
+            if (this.animator == null)
             {
-                KerbalForgePlugin.Instance.SWLogger.LogInfo("Deployable is null");
+                KerbalForgePlugin.Instance._logger.LogError("Deployable is null");
                 return;
             }
 
-            deploymentAnimator = GetComponentInChildren<Animator>(true);
-            _dataDeployment.IsDeployed.OnChangedValue += OnDeployedStateChanged;
-            SetDeploymentActiveState(_dataDeployment.IsDeployed.GetValue());
+            this.animator = GetComponentInChildren<Animator>(true);
+            _dataDeployment.isDeployed.OnChangedValue += OnDeployedStateChanged;
+            SetDeploymentActiveState(_dataDeployment.isDeployed.GetValue());
+            KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized Coomponents");
         }
         private void RegisterActions()
         {
+            KerbalForgePlugin.Instance._logger.LogInfo("Registering actions for Heat Shield...");
+
             AddActionGroupAction(ToggleDeployedState, KSP.Sim.KSPActionGroup.None, "Toggle Heat Shield");
+            KerbalForgePlugin.Instance._logger.LogInfo("Registered Toggle Heat Shield action.");
+
             AddActionGroupAction(() => SetDeploymentActiveState(true), KSP.Sim.KSPActionGroup.None, "Deploy Heat Shield");
+            KerbalForgePlugin.Instance._logger.LogInfo("Registered Deploy Heat Shield action.");
+
             AddActionGroupAction(() => SetDeploymentActiveState(false), KSP.Sim.KSPActionGroup.None, "Retract Heat Shield");
+            KerbalForgePlugin.Instance._logger.LogInfo("Registered Retract Heat Shield action.");
         }
         public override void AddDataModules()
         {
@@ -61,30 +70,39 @@ namespace KerbalForge.Modules
         }
         private void SetDeploymentActiveState(bool newState)
         {
-            IsDeployed = newState;
+            isDeployed = newState;
             UpdateDeployment();
         }
         private void ToggleDeployedState()
         {
-            SetDeploymentActiveState(!IsDeployed);
+            SetDeploymentActiveState(!isDeployed);
         }
         public override string GetModuleDisplayName()
         {
-            return LocalizationManager.GetTranslation("PartModules/Deployable/Name");
+            return LocalizationManager.GetTranslation("PartModules/Deployable/Name");            
         }
-        private void OnDeployedStateChanged(bool deployed)
+        private void OnDeployedStateChanged(bool isdeployed)
         {
-
-            if (deploymentAnimator != null)
+            if (this.animator != null)
             {
-                deploymentAnimator.SetBool("Deployed", deployed);
+                this.animator.SetBool("isDeployed", isdeployed);
+                KerbalForgePlugin.Instance._logger.LogDebug($"Setting animator 'Deployed' state to: {isdeployed}");
+            }
+            else
+            {
+                KerbalForgePlugin.Instance._logger.LogError("Animator is null in OnDeployedStateChanged");
             }
         }
         private void UpdateDeployment()
         {
-            if (deploymentAnimator != null && deploymentAnimator.GetBool("Deployed") != IsDeployed)
+            if (this.animator != null && this.animator.GetBool("Deployed") != isDeployed)
             {
-                deploymentAnimator.SetBool("Deployed", IsDeployed);
+                this.animator.SetBool("Deployed", isDeployed);
+                KerbalForgePlugin.Instance._logger.LogDebug($"Animator 'Deployed' state mismatch detected. Setting to: {isDeployed}");
+            }
+            else if (this.animator == null)
+            {
+                KerbalForgePlugin.Instance._logger.LogError("Animator is null in UpdateDeployment");
             }
         }
         public override string ToString()

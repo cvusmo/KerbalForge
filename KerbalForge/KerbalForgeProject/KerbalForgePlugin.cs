@@ -3,6 +3,7 @@ using BepInEx.Logging;
 using KerbalForge.Modules;
 using SpaceWarp;
 using SpaceWarp.API.Mods;
+using UnityEngine;
 
 namespace KerbalForge
 {
@@ -26,12 +27,13 @@ namespace KerbalForge
                 throw new Exception("KerbalForgePlugin is a singleton and cannot have multiple instances!");
             }
             Instance = this;
+            Debug.LogError($"PluginFolderPath set to: {Path}");
         }
         public override void OnPreInitialized()
         {
             Path = this.PluginFolderPath;
             base.OnPreInitialized();
-            _logger.LogInfo("OnPreInitialized KerbalForgePlugin.");
+            _logger.LogInfo("OnPreInitialized KerbalForgePlugin.");           
         }
         public override void OnInitialized()
         {
@@ -45,8 +47,9 @@ namespace KerbalForge
         }
         private void LogInit()
         {
-            Logger.LogDebug("Kerbal Forge initialized successfully");
-            Logger.LogDebug("Module_Deployment initialized successfully.");
+            _logger.LogInfo("Kerbal Forge initialized successfully");
+            _logger.LogInfo("Module_Deployment initialized successfully.");
+            _logger.LogInfo($"PluginFolderPath set to: {Path}");
         }
     }
 }
