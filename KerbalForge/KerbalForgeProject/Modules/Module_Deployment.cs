@@ -10,20 +10,21 @@ namespace KerbalForge.Modules
     {
         [SerializeField]
         private Data_Deployment _dataDeployment = new Data_Deployment();
-        public bool isDeployed
+
+        public bool IsDeployed
         {
-            get => _dataDeployment.isDeployed.GetValue();
+            get => _dataDeployment.IsDeployed;
             set
             {
-                if (value != isDeployed)
+                if (value != IsDeployed)
                 {
-                    _dataDeployment.isDeployed.SetValue(value);
+                    _dataDeployment.IsDeployed = value;
                     OnDeployedStateChanged(value);
                     Debug.Log($"IsDeployed has been set to: {value}");
                 }
             }
         }
-        string ToStringDelegate(object obj) => isDeployed ? "Deployed" : "Retracted";
+        string ToStringDelegate(object obj) => IsDeployed ? "Deployed" : "Retracted";
         public override Type PartComponentModuleType => typeof(PartComponentModule_Deployment);
         public override void OnInitialize()
         {
@@ -40,14 +41,12 @@ namespace KerbalForge.Modules
             this.animator = GetComponentInChildren<Animator>(true);
             if (this.animator == null)
             {
-                KerbalForgePlugin.Instance._logger.LogError("Deployable is null");
+                KerbalForgePlugin.Instance._logger.LogError("Module_Deployable Animator is null");
                 return;
             }
 
-            this.animator = GetComponentInChildren<Animator>(true);
-            _dataDeployment.isDeployed.OnChangedValue += OnDeployedStateChanged;
-            SetDeploymentActiveState(_dataDeployment.isDeployed.GetValue());
-            KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized Coomponents");
+            SetDeploymentActiveState(_dataDeployment.IsDeployed);
+            KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized Components");
         }
         private void RegisterActions()
         {
@@ -70,12 +69,12 @@ namespace KerbalForge.Modules
         }
         private void SetDeploymentActiveState(bool newState)
         {
-            isDeployed = newState;
+            IsDeployed = newState;
             UpdateDeployment();
         }
         private void ToggleDeployedState()
         {
-            SetDeploymentActiveState(!isDeployed);
+            SetDeploymentActiveState(!IsDeployed);
         }
         public override string GetModuleDisplayName()
         {
@@ -85,8 +84,24 @@ namespace KerbalForge.Modules
         {
             if (this.animator != null)
             {
-                this.animator.SetBool("isDeployed", isdeployed);
-                KerbalForgePlugin.Instance._logger.LogDebug($"Setting animator 'Deployed' state to: {isdeployed}");
+                if (isdeployed)
+                {
+                    // If it's currently retracted, start extending
+                    if (this.animator.GetBool("isRetracted"))
+                    {
+                        this.animator.SetTrigger("isExtending");
+                        this.animator.SetBool("isRetracted", false);
+                    }
+                }
+                else
+                {
+                    // If it's fully extended, start retracting
+                    if (this.animator.GetBool("isExtended"))
+                    {
+                        this.animator.SetTrigger("isRetracting");
+                        this.animator.SetBool("isExtended", false);
+                    }
+                }
             }
             else
             {
@@ -95,14 +110,40 @@ namespace KerbalForge.Modules
         }
         private void UpdateDeployment()
         {
-            if (this.animator != null && this.animator.GetBool("Deployed") != isDeployed)
+            if (this.animator != null)
             {
-                this.animator.SetBool("Deployed", isDeployed);
-                KerbalForgePlugin.Instance._logger.LogDebug($"Animator 'Deployed' state mismatch detected. Setting to: {isDeployed}");
+                if (this.animator.GetBool("isExtended") != IsDeployed)
+                {
+                    if (IsDeployed)
+                    {
+                        this.animator.SetBool("isExtended", true);
+                        this.animator.SetBool("isRetracted", false);
+                    }
+                    else
+                    {
+                        this.animator.SetBool("isExtended", false);
+                        this.animator.SetBool("isRetracted", true);
+                    }
+                    KerbalForgePlugin.Instance._logger.LogDebug($"Animator 'isExtended' or 'isRetracted' state mismatch detected. Setting 'isExtended' to: {IsDeployed}");
+                }
             }
-            else if (this.animator == null)
+            else
             {
                 KerbalForgePlugin.Instance._logger.LogError("Animator is null in UpdateDeployment");
+            }
+        }
+        public void ResetExtendingTrigger()
+        {
+            if (this.animator != null)
+            {
+                this.animator.ResetTrigger("isExtending");
+            }
+        }
+        public void ResetRetractingTrigger()
+        {
+            if (this.animator != null)
+            {
+                this.animator.ResetTrigger("isRetracting");
             }
         }
         public override string ToString()
