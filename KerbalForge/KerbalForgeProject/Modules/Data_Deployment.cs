@@ -8,11 +8,12 @@ namespace KerbalForge.Modules
     public class Data_Deployment : ModuleData
     {
         private Data_Deployable deployableData = new Data_Deployable();
+
         public override Type ModuleType => typeof(Module_Deployable);
 
-        // Event handlers to notify state changes
         public event Action<bool> OnToggleExtendChanged;
         public event Action<Data_Deployable.DeployState> OnCurrentDeployStateChanged;
+
         public Data_Deployable.DeployState CurrentState
         {
             get => deployableData.CurrentDeployState.GetValue();
@@ -25,22 +26,7 @@ namespace KerbalForge.Modules
                 }
             }
         }
-        public bool IsExtended
-        {
-            get => CurrentState == Data_Deployable.DeployState.Extended;
-        }
-        public bool IsRetracted
-        {
-            get => CurrentState == Data_Deployable.DeployState.Retracted;
-        }
-        public bool IsRetracting
-        {
-            get => CurrentState == Data_Deployable.DeployState.Retracting;
-        }
-        public bool IsExtending
-        {
-            get => CurrentState == Data_Deployable.DeployState.Extending;
-        }
+
         public bool ToggleExtend
         {
             get => deployableData.toggleExtend.GetValue();
@@ -53,13 +39,23 @@ namespace KerbalForge.Modules
                 }
             }
         }
-        public void RaiseToggleExtendChanged(bool isExtended)
-        {
-            OnToggleExtendChanged?.Invoke(isExtended);
-        }
-        public void RaiseCurrentDeployStateChanged(Data_Deployable.DeployState state)
-        {
-            OnCurrentDeployStateChanged?.Invoke(state);
-        }
+
+        public string AnimDeployStateKey => deployableData.AnimDeployStateKey;
+
+        public string AnimReverseStateTransitionTriggerKey => deployableData.AnimReverseStateTransitionTriggerKey;
+
+        public string AnimSpeedMultiplierKey => deployableData.AnimSpeedMultiplierKey;
+
+        public float DefaultExtendedAnimSpeedValue => deployableData.DefaultExtendedAnimSpeedValue;
+
+        public float DefaultRetractedAnimSpeedValue => deployableData.DefaultRetractedAnimSpeedValue;
+
+        public bool IsExtended => CurrentState == Data_Deployable.DeployState.Extended;
+
+        public bool IsRetracted => CurrentState == Data_Deployable.DeployState.Retracted;
+
+        public bool IsRetracting => CurrentState == Data_Deployable.DeployState.Retracting;
+
+        public bool IsExtending => CurrentState == Data_Deployable.DeployState.Extending;
     }
 }
