@@ -20,5 +20,31 @@ namespace KerbalForge.Modules
             get => isDeployedField.GetValue();
             set => isDeployedField.SetValue(value);
         }
+        public bool IsRetracted
+        {
+            get => isDeployedField.GetValue();
+            set => isDeployedField.SetValue(value);
+        }
+        public bool IsRetracting
+        {
+            get => isDeployedField.GetValue();
+            set => isDeployedField.SetValue(value);
+        }
+        public bool IsExtended
+        {
+            get => isDeployedField.GetValue();
+            set => isDeployedField.SetValue(value);
+        }
+        public bool IsExtending
+        {
+            get => isDeployedField.GetValue();
+            set => isDeployedField.SetValue(value);
+        }
+        public bool toggleExtend
+        {
+            get => isDeployedField.GetValue();
+            set => isDeployedField.SetValue(value);
+        }
+
     }
 }
