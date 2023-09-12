@@ -1,8 +1,6 @@
-﻿using I2.Loc;
-using KSP.Modules;
+﻿using KSP.Modules;
 using UnityEngine;
-using KerbalForge;
-using KSP.Utilities;
+using static KSP.Modules.Data_Deployable;
 
 namespace KerbalForge.Modules
 {
@@ -11,59 +9,33 @@ namespace KerbalForge.Modules
     {
         [SerializeField]
         private Data_Deployment _dataDeployment = new Data_Deployment();
+        private Animator animator;
+        public bool UseAnimation { get; set; } = true;
+
+        #region Properties
         public bool IsDeployed
         {
             get => _dataDeployment.IsDeployed;
-            set
-            {
-                if (value != IsDeployed)
-                {
-                    _dataDeployment.IsDeployed = value;
-                    dataDeployable.toggleExtend.SetValueInternal(value); 
-                    OnDeployedStateChanged(value);
-                    Debug.Log($"IsDeployed has been set to: {value}");
-                }
-            }
+            set => SetDeploymentState(value, nameof(IsDeployed));
         }
         public bool IsRetracted
         {
             get => _dataDeployment.IsRetracted;
-            set
-            {
-                if (value != IsRetracted)
-                {
-                    _dataDeployment.IsRetracted = value;
-                    dataDeployable.toggleExtend.SetValueInternal(value);
-                    OnDeployedStateChanged(value);
-                    Debug.Log($"IsRetracted has been set to: {value}");
-                }
-            }
+            set => SetDeploymentState(value, nameof(IsRetracted));
         }
         public bool IsExtended
         {
-            get => _dataDeployment.IsExtended;
-            set
-            {
-                if (value != IsExtended)
-                {
-                    _dataDeployment.IsExtended = value;
-                    dataDeployable.toggleExtend.SetValueInternal(value);
-                    OnDeployedStateChanged(value);
-                    Debug.Log($"IsExtended has been set to: {value}");
-                }
-            }
+            get => _dataDeployment.IsDeployed;
+            set => SetDeploymentState(value, nameof(IsExtended));
         }
         public bool IsRetracting
         {
             get => _dataDeployment.IsRetracting;
             set
             {
-                if (value != IsRetracting)
+                if (value)
                 {
-                    _dataDeployment.IsRetracting = value;
-                    dataDeployable.toggleExtend.SetValueInternal(value);
-                    OnDeployedStateChanged(value);
-                    Debug.Log($"IsRetracting has been set to: {value}");
+                    SetDeploymentState(true, nameof(IsRetracting));
                 }
             }
         }
@@ -72,129 +44,165 @@ namespace KerbalForge.Modules
             get => _dataDeployment.IsExtending;
             set
             {
-                if (value != IsExtending)
+                if (value)
                 {
-                    _dataDeployment.IsExtending = value;
-                    dataDeployable.toggleExtend.SetValueInternal(value);
-                    OnDeployedStateChanged(value);
-                    Debug.Log($"IsExtending has been set to: {value}");
+                    SetDeploymentState(true, nameof(IsExtending));
                 }
             }
         }
+
+        #endregion
         public override void OnInitialize()
         {
             KerbalForgePlugin.Instance._logger.LogInfo("Initializing Module_Deployment...");
-
             InitializeComponents();
-
-            // Set animator to the initial state
-            if (animator != null)
-            {
-                animator.SetBool("isRetracted", true);
-                animator.SetBool("isExtended", false);
-            }
-            else
-            {
-                KerbalForgePlugin.Instance._logger.LogError("Animator is null during OnInitialize");
-            }
-
             base.OnInitialize();
+            _dataDeployment.OnToggleExtendChanged += OnToggleExtendChanged;
+            _dataDeployment.OnCurrentDeployStateChanged += OnCurrentDeployStateChanged;
             RegisterActions();
             UpdateDeployment();
-
             KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized!");
         }
         private void InitializeComponents()
         {
-            this.animator = GetComponentInChildren<Animator>(true);
-            if (this.animator == null)
-            {
-                KerbalForgePlugin.Instance._logger.LogError($"Module_Deployable Animator is null. Name: {this.animator?.gameObject.name ?? "Animator is null"}");
-            }
-            else
-            {
-                KerbalForgePlugin.Instance._logger.LogInfo($"Animator successfully fetched. It is attached to GameObject: {this.animator.gameObject.name}.");
+            animator = GetComponentInChildren<Animator>(true);
+            LogAnimatorStatus();
 
-            }
+            UpdateDeploymentStatesFromData();
 
-            IsRetracted = _dataDeployment.IsRetracted;
-            IsExtended = _dataDeployment.IsExtended;
-            IsRetracting = _dataDeployment.IsRetracting;
-            IsExtending = _dataDeployment.IsExtending;
-            IsDeployed = _dataDeployment.IsDeployed;
             KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized Components");
         }
         private void RegisterActions()
         {
             KerbalForgePlugin.Instance._logger.LogInfo("Registering actions for Heat Shield...");
-
-            AddActionGroupAction(() => IsDeployed = true, KSP.Sim.KSPActionGroup.None, "Deploy Heat Shield"); 
-            KerbalForgePlugin.Instance._logger.LogInfo("Registered Deploy Heat Shield action.");
-
-            AddActionGroupAction(() => IsDeployed = false, KSP.Sim.KSPActionGroup.None, "Retract Heat Shield"); 
-            KerbalForgePlugin.Instance._logger.LogInfo("Registered Retract Heat Shield action.");
-        }
-        public override void OnToggleExtendChanged(bool extended)
-        {
-            IsDeployed = extended;
-        }
-        private void OnDeployedStateChanged(bool isDeployed)
-        {
-            if (this.animator != null)
-            {
-                if (IsRetracted)
-                {
-                    this.animator.SetBool("isExtended", false);
-                    this.animator.SetBool("isRetracted", true);
-
-                    bool isExtended = this.animator.GetBool("isExtended");
-                    bool isRetracted = this.animator.GetBool("isRetracted");
-
-                    KerbalForgePlugin.Instance._logger.LogInfo($"isExtended: " + isExtended);
-                    KerbalForgePlugin.Instance._logger.LogInfo($"isRetracted: " + isRetracted);
-                }
-                else if (IsExtending)
-                {
-                    this.animator.SetTrigger("isExtending");
-                    KerbalForgePlugin.Instance._logger.LogInfo("Set trigger: isExtending");
-                }
-                else if (IsExtended)
-                {
-                    this.animator.SetBool("isExtended", true);
-                    bool isExtended = this.animator.GetBool("isExtended");
-                    KerbalForgePlugin.Instance._logger.LogInfo($"isExtended set to: " + isExtended);
-                }
-                else if (IsRetracting)
-                {
-                    this.animator.SetTrigger("isRetracting");
-                    KerbalForgePlugin.Instance._logger.LogInfo("Set trigger: isRetracting");
-                }
-            }
-            else
-            {
-                KerbalForgePlugin.Instance._logger.LogError("Animator is null in OnDeployedStateChanged");
-            }
+            AddActionGroupAction(() => IsDeployed = true, KSP.Sim.KSPActionGroup.None, "Deploy Heat Shield");
+            AddActionGroupAction(() => IsDeployed = false, KSP.Sim.KSPActionGroup.None, "Retract Heat Shield");
         }
         private void UpdateDeployment()
         {
-            if (this.animator != null)
+            if (animator != null && UseAnimation)
             {
-                bool isExtended = this.animator.GetBool("isExtended");
-                if (isExtended != IsDeployed)
-                {
-                    this.animator.SetBool("isExtended", IsDeployed);
-                    this.animator.SetBool("isRetracted", !IsDeployed);
-                    KerbalForgePlugin.Instance._logger.LogDebug($"Animator 'isExtended' or 'isRetracted' state mismatch detected. Setting 'isExtended' to: {IsDeployed}");
-                }
+                animator.SetBool("isExtended", IsDeployed);
+                animator.SetBool("isRetracted", !IsDeployed);
+                KerbalForgePlugin.Instance._logger.LogDebug($"Animator state mismatch detected. Setting 'isExtended' to: {IsDeployed}");
             }
-            else
+            else if (animator == null)
             {
                 KerbalForgePlugin.Instance._logger.LogError("Animator is null in UpdateDeployment");
             }
         }
+        public void ToggleExtension()
+        {
+            if (IsDeployed)
+            {
+                SetDeploymentState(false, nameof(IsDeployed));
+            }
+            else
+            {
+                SetDeploymentState(true, nameof(IsDeployed));
+            }
+        }
+        private void SetDeploymentState(bool value, string logMsg)
+        {
+            Data_Deployable.DeployState newState;
+
+            switch (logMsg)
+            {
+                case nameof(IsDeployed):
+                    if (value)
+                    {
+                        animator?.SetTrigger("isExtending");
+                        animator?.SetBool("isExtended", true);
+                        animator?.SetBool("isRetracted", false);
+                        newState = Data_Deployable.DeployState.Extended;
+                    }
+                    else
+                    {
+                        animator?.SetTrigger("isRetracting");
+                        animator?.SetBool("isRetracted", true);
+                        animator?.SetBool("isExtended", false);
+                        newState = Data_Deployable.DeployState.Retracted;
+                    }
+                    break;
+                case nameof(IsRetracting):
+                    animator?.SetTrigger("isRetracting");
+                    animator?.SetBool("isRetracted", true);
+                    animator?.SetBool("isExtended", false);
+                    newState = Data_Deployable.DeployState.Retracting;
+                    break;
+                case nameof(IsExtending):
+                    animator?.SetTrigger("isExtending");
+                    animator?.SetBool("isExtended", true);
+                    animator?.SetBool("isRetracted", false);
+                    newState = Data_Deployable.DeployState.Extending;
+                    break;
+                default:
+                    KerbalForgePlugin.Instance._logger.LogError($"Unexpected logMsg received: {logMsg}");
+                    newState = Data_Deployable.DeployState.Broken; 
+                    break;
+            }
+
+            UpdateDeployment();
+            UpdateDeployState(newState);
+
+            KerbalForgePlugin.Instance._logger.LogInfo($"{logMsg} has been set to: {value}");
+        }
+        public override void OnToggleExtendChanged(bool newToggleExtendValue)
+        {
+            base.OnToggleExtendChanged(newToggleExtendValue);
+            IsDeployed = newToggleExtendValue;
+            UpdateDeployment();
+        }
+        void UpdateDeployState(Data_Deployable.DeployState newstate)
+        {
+            _dataDeployment.CurrentState = newstate;
+            switch (newstate)
+            {
+                case Data_Deployable.DeployState.Retracting:
+                    OnCurrentDeployStateChanged(Data_Deployable.DeployState.Retracting);
+                    break;
+                case Data_Deployable.DeployState.Retracted:
+                    OnCurrentDeployStateChanged(Data_Deployable.DeployState.Retracted);
+                    break;
+                case Data_Deployable.DeployState.Extending:
+                    OnCurrentDeployStateChanged(Data_Deployable.DeployState.Extending);
+                    break;
+                case Data_Deployable.DeployState.Extended:
+                    OnCurrentDeployStateChanged(Data_Deployable.DeployState.Extended);
+                    break;
+                case Data_Deployable.DeployState.Broken:
+                    OnCurrentDeployStateChanged(Data_Deployable.DeployState.Broken);
+                    break;
+                default:
+                    break;
+            }
+        }
+        private void UpdateDeploymentStatesFromData()
+        {
+            IsRetracted = _dataDeployment.IsRetracted;
+            IsExtended = _dataDeployment.IsDeployed;
+            IsRetracting = _dataDeployment.IsRetracting;
+            IsExtending = _dataDeployment.IsExtending;
+        }
+        private void LogAnimatorStatus()
+        {
+            if (animator == null)
+            {
+                KerbalForgePlugin.Instance._logger.LogError("Animator is null during Initialization.");
+            }
+            else
+            {
+                KerbalForgePlugin.Instance._logger.LogInfo($"Animator successfully fetched. It is attached to GameObject: {animator.gameObject.name}.");
+            }
+        }
         public override string ToString()
         {
-            return IsDeployed ? "Deployed" : "Retracted";
+            return IsDeployed ? "isExtended" : "isRetracted";
+        }
+        private void OnDestroy()
+        {
+            _dataDeployment.OnToggleExtendChanged -= OnToggleExtendChanged;
+            _dataDeployment.OnCurrentDeployStateChanged -= OnCurrentDeployStateChanged;
         }
     }
 }

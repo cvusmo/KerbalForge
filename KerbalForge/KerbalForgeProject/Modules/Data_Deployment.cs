@@ -1,6 +1,5 @@
 ﻿using KSP.Modules;
 using KSP.Sim.Definitions;
-using UnityEngine;
 
 namespace KerbalForge.Modules
 {
@@ -8,43 +7,42 @@ namespace KerbalForge.Modules
     public class Data_Deployment : ModuleData
     {
         private Data_Deployable deployableData = new Data_Deployable();
-
-        [LocalizedField("Deploy Heat Shield")]
-        [Tooltip("Current Heat Shield State")]
-        public ModuleProperty<bool> isDeployedField = new ModuleProperty<bool>(false);
-
         public override Type ModuleType => typeof(Module_Deployable);
-
+        public event Action<bool> OnToggleExtendChanged;
+        public event Action<Data_Deployable.DeployState> OnCurrentDeployStateChanged;
+        public Data_Deployable.DeployState CurrentState
+        {
+            get => deployableData.CurrentDeployState.GetValue();
+            set => deployableData.CurrentDeployState.SetValue(value);
+        }
         public bool IsDeployed
         {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
+            get => CurrentState == Data_Deployable.DeployState.Extended;
         }
         public bool IsRetracted
         {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
+            get => CurrentState == Data_Deployable.DeployState.Retracted;
         }
         public bool IsRetracting
         {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
-        }
-        public bool IsExtended
-        {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
+            get => CurrentState == Data_Deployable.DeployState.Retracting;
         }
         public bool IsExtending
         {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
+            get => CurrentState == Data_Deployable.DeployState.Extending;
         }
-        public bool toggleExtend
+        public bool ToggleExtend
         {
-            get => isDeployedField.GetValue();
-            set => isDeployedField.SetValue(value);
+            get => deployableData.toggleExtend.GetValue();
+            set => deployableData.toggleExtend.SetValue(value);
         }
-
+        public void RaiseToggleExtendChanged(bool isExtended)
+        {
+            OnToggleExtendChanged?.Invoke(isExtended);
+        }
+        public void RaiseCurrentDeployStateChanged(Data_Deployable.DeployState state)
+        {
+            OnCurrentDeployStateChanged?.Invoke(state);
+        }
     }
 }
