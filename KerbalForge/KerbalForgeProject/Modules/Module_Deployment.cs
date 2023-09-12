@@ -1,5 +1,12 @@
-﻿using KerbalForge.Modules;
-using KSP.Modules;
+﻿using KSP.Modules;
+using I2.Loc;
+using KSP.Game;
+using KSP.Logging;
+using KSP.Messages;
+using KSP.Sim;
+using KSP.Sim.Definitions;
+using KSP.Sim.impl;
+using System;
 using UnityEngine;
 using static KSP.Modules.Data_Deployable;
 
@@ -11,121 +18,77 @@ namespace KerbalForge.Modules
         [SerializeField]
         private Data_Deployment _dataDeployment = new Data_Deployment();
         private Animator animator;
-        public bool UseAnimation { get; set; } = true;
-
-        enum DeploymentState
+        public DeployState State
         {
-            Extended,
-            Retracted,
-            Extending,
-            Retracting
-        }
-
-        #region Properties      
-        public bool IsRetracted
-        {
-            get => _dataDeployment.IsRetracted;
-            set => SetDeploymentState(value, DeploymentState.Retracted);
-        }
-        public bool IsExtending
-        {
-            get => _dataDeployment.IsExtending;
+            get => _dataDeployment.CurrentState;
             set
             {
-                if (value)
-                {
-                    SetDeploymentState(true, DeploymentState.Extending);
-                }
+                UpdateDeploymentState(value);
+                UpdateAnimatorState(value);
+                KerbalForgePlugin.Instance._logger.LogInfo($"DeploymentState has been set to: {value}");
             }
         }
-        public bool IsExtended
-        {
-            get => _dataDeployment.IsExtended;
-            set => SetDeploymentState(value, DeploymentState.Extended);
-        }
-        public bool IsRetracting
-        {
-            get => _dataDeployment.IsRetracting;
-            set
-            {
-                if (value)
-                {
-                    SetDeploymentState(true, DeploymentState.Retracting);
-                }
-            }
-        }
-
-        #endregion
         public override void OnInitialize()
         {
             KerbalForgePlugin.Instance._logger.LogInfo("Initializing Module_Deployment...");
             InitializeComponents();
             base.OnInitialize();
+            OnInitializeVisuals();
+            OnInitializeDrag();
+            _dataDeployment.OnToggleExtendChanged += OnToggleExtendChanged;
+            _dataDeployment.OnCurrentDeployStateChanged += OnCurrentDeployStateChanged;
+            RegisterActions();
             KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized!");
         }
         private void InitializeComponents()
         {
             animator = GetComponentInChildren<Animator>(true);
             LogAnimatorStatus();
-            UpdateDeploymentStatesFromData();
-            KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized Components");
         }
+        private void RegisterActions()
+        {
+            KerbalForgePlugin.Instance._logger.LogInfo("Registering actions for Heat Shield...");
+            AddActionGroupAction(() => State = DeployState.Extended, KSP.Sim.KSPActionGroup.None, "Deploy Heat Shield");
+            AddActionGroupAction(() => State = DeployState.Retracted, KSP.Sim.KSPActionGroup.None, "Retract Heat Shield");
+        }
+        public void ToggleExtension()
+        {
+            State = (State == DeployState.Extended) ? DeployState.Retracted : DeployState.Extended;
+        }
+        void UpdateDeploymentState(DeployState newState)
+        {
+            _dataDeployment.CurrentState = newState;
+            OnCurrentDeployStateChanged(newState);
+        }
+        private void UpdateAnimatorState(DeployState state)
+        {
+            if (animator == null) return;
+
+            switch (state)
+            {
+                case DeployState.Extending:
+                    animator.SetTrigger(_dataDeployment.AnimReverseStateTransitionTriggerKey);
+                    animator.SetFloat(_dataDeployment.AnimSpeedMultiplierKey, _dataDeployment.DefaultExtendedAnimSpeedValue);
+                    Extend();
+                    break;
+                case DeployState.Retracting:
+                    animator.SetTrigger(_dataDeployment.AnimReverseStateTransitionTriggerKey);
+                    animator.SetFloat(_dataDeployment.AnimSpeedMultiplierKey, _dataDeployment.DefaultRetractedAnimSpeedValue);
+                    Retract();
+                    break;
+                case DeployState.Extended:
+                    animator.SetBool(_dataDeployment.AnimDeployStateKey, true);
+                    break;
+                case DeployState.Retracted:
+                    animator.SetBool(_dataDeployment.AnimDeployStateKey, false);
+                    break;
+            }
+        }
+
         public override void OnToggleExtendChanged(bool newToggleExtendValue)
         {
             base.OnToggleExtendChanged(newToggleExtendValue);
-            if (newToggleExtendValue)
-                Extend();
-            else
-                Retract();
-        }
-        private void UpdateDeploymentStatesFromData()
-        {
-            IsRetracted = _dataDeployment.IsRetracted;
-            IsExtended = _dataDeployment.IsExtended;
-            IsRetracting = _dataDeployment.IsRetracting;
-            IsExtending = _dataDeployment.IsExtending;
-        }
-        private void SetDeploymentState(bool value, DeploymentState state)
-        {
-            switch (state)
-            {
-                case DeploymentState.Extended:
-                    if (value)
-                    {
-                        animator?.SetTrigger("isExtending");
-                        animator?.SetBool("isExtended", true);
-                        animator?.SetBool("isRetracted", false);
-                    }
-                    else
-                    {
-                        animator?.SetTrigger("isRetracting");
-                        animator?.SetBool("isRetracted", true);
-                        animator?.SetBool("isExtended", false);
-                    }
-                    break;
-                case DeploymentState.Retracting:
-                    animator?.SetTrigger("isRetracting");
-                    animator?.SetBool("isRetracted", true);
-                    animator?.SetBool("isExtended", false);
-                    break;
-                case DeploymentState.Extending:
-                    animator?.SetTrigger("isExtending");
-                    animator?.SetBool("isExtended", true);
-                    animator?.SetBool("isRetracted", false);
-                    break;
-            }
-
-            UpdateDeploymentStatesFromData();
-            LogAnimatorStatus();
-
-            if (IsExtended)
-                Extend();
-            else
-                Retract();
-
-            OnToggleExtendChanged(IsExtended);
-
-            KerbalForgePlugin.Instance._logger.LogInfo($"{state} has been set to: {value}");
+            State = newToggleExtendValue ? DeployState.Extended : DeployState.Retracted;
         }
         private void LogAnimatorStatus()
         {
@@ -140,7 +103,7 @@ namespace KerbalForge.Modules
         }
         public override string ToString()
         {
-            return IsExtended ? "isExtended" : "isRetracted";
+            return State.ToString();
         }
         private void OnDestroy()
         {
