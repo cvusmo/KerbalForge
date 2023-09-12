@@ -13,7 +13,6 @@ namespace KerbalForge.Modules
         // Event handlers to notify state changes
         public event Action<bool> OnToggleExtendChanged;
         public event Action<Data_Deployable.DeployState> OnCurrentDeployStateChanged;
-
         public Data_Deployable.DeployState CurrentState
         {
             get => deployableData.CurrentDeployState.GetValue();
@@ -34,17 +33,14 @@ namespace KerbalForge.Modules
         {
             get => CurrentState == Data_Deployable.DeployState.Retracted;
         }
-
         public bool IsRetracting
         {
             get => CurrentState == Data_Deployable.DeployState.Retracting;
         }
-
         public bool IsExtending
         {
             get => CurrentState == Data_Deployable.DeployState.Extending;
         }
-
         public bool ToggleExtend
         {
             get => deployableData.toggleExtend.GetValue();
@@ -57,12 +53,10 @@ namespace KerbalForge.Modules
                 }
             }
         }
-
         public void RaiseToggleExtendChanged(bool isExtended)
         {
             OnToggleExtendChanged?.Invoke(isExtended);
         }
-
         public void RaiseCurrentDeployStateChanged(Data_Deployable.DeployState state)
         {
             OnCurrentDeployStateChanged?.Invoke(state);
