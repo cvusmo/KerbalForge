@@ -27,7 +27,7 @@ namespace KerbalForge
                 throw new Exception("KerbalForgePlugin is a singleton and cannot have multiple instances!");
             }
             Instance = this;
-            Debug.LogError($"PluginFolderPath set to: {Path}");
+            _logger.LogInfo($"PluginFolderPath set to: {Path}");
         }
         public override void OnPreInitialized()
         {

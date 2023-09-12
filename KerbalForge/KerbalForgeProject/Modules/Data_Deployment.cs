@@ -1,5 +1,6 @@
 ﻿using KSP.Modules;
 using KSP.Sim.Definitions;
+using System;
 
 namespace KerbalForge.Modules
 {
@@ -8,14 +9,24 @@ namespace KerbalForge.Modules
     {
         private Data_Deployable deployableData = new Data_Deployable();
         public override Type ModuleType => typeof(Module_Deployable);
+
+        // Event handlers to notify state changes
         public event Action<bool> OnToggleExtendChanged;
         public event Action<Data_Deployable.DeployState> OnCurrentDeployStateChanged;
+
         public Data_Deployable.DeployState CurrentState
         {
             get => deployableData.CurrentDeployState.GetValue();
-            set => deployableData.CurrentDeployState.SetValue(value);
+            set
+            {
+                if (deployableData.CurrentDeployState.GetValue() != value)
+                {
+                    deployableData.CurrentDeployState.SetValue(value);
+                    OnCurrentDeployStateChanged?.Invoke(value);
+                }
+            }
         }
-        public bool IsDeployed
+        public bool IsExtended
         {
             get => CurrentState == Data_Deployable.DeployState.Extended;
         }
@@ -23,23 +34,35 @@ namespace KerbalForge.Modules
         {
             get => CurrentState == Data_Deployable.DeployState.Retracted;
         }
+
         public bool IsRetracting
         {
             get => CurrentState == Data_Deployable.DeployState.Retracting;
         }
+
         public bool IsExtending
         {
             get => CurrentState == Data_Deployable.DeployState.Extending;
         }
+
         public bool ToggleExtend
         {
             get => deployableData.toggleExtend.GetValue();
-            set => deployableData.toggleExtend.SetValue(value);
+            set
+            {
+                if (deployableData.toggleExtend.GetValue() != value)
+                {
+                    deployableData.toggleExtend.SetValue(value);
+                    OnToggleExtendChanged?.Invoke(value);
+                }
+            }
         }
+
         public void RaiseToggleExtendChanged(bool isExtended)
         {
             OnToggleExtendChanged?.Invoke(isExtended);
         }
+
         public void RaiseCurrentDeployStateChanged(Data_Deployable.DeployState state)
         {
             OnCurrentDeployStateChanged?.Invoke(state);
