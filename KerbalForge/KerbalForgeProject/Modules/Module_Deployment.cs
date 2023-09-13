@@ -33,23 +33,31 @@ namespace KerbalForge.Modules
             KerbalForgePlugin.Instance._logger.LogInfo("Initializing Module_Deployment...");
             InitializeComponents();
             base.OnInitialize();
+
+            // Override the default action names with your custom names
+            this.dataDeployable.DeployPartTypeName = "PartModules/Deployable/PartType";
+            this.dataDeployable.OneTimeExtendActionName = "PartModules/Deployable/ExtendOnly";
+            this.dataDeployable.DeployToggleActionName = "PartModules/Deployable/Toggle Heat Shield";
+            this.dataDeployable.ActionGroupToggleName = "PartModules/Deployable/ToggleExtended/Toggle Heat Shield";
+            this.dataDeployable.ActionGroupExtendName = "PartModules/Deployable/ToggleExtended/Extend Heat Shield";
+            this.dataDeployable.ActionGroupRetractName = "PartModules/Deployable/ToggleExtended/Retract Heat Shield";
+            this.dataDeployable.DeployStateRetractedName = "PartModules/Deployable/State/Retracted Heat Shield";
+            this.dataDeployable.DeployStateExtendedName = "PartModules/Deployable/State/Extended Heat Shield";
+            this.dataDeployable.DeployStateMovingName = "PartModules/Deployable/State/Moving Heat Shield";
+            this.dataDeployable.DeployStateBlockedName = "PartModules/Deployable/State/Blocked Heat Shield";
+            this.dataDeployable.DeployStateExtendedCannotRetractName = "PartModules/Deployable/State/CannotRetractHeatShield";
+            this.dataDeployable.DeployRetractedCannotRetractName = "PartModules/Deployable/State/RetractedCannotRetractHeatShield";
+
             OnInitializeVisuals();
             OnInitializeDrag();
             _dataDeployment.OnToggleExtendChanged += OnToggleExtendChanged;
             _dataDeployment.OnCurrentDeployStateChanged += OnCurrentDeployStateChanged;
-            RegisterActions();
             KerbalForgePlugin.Instance._logger.LogInfo("Module_Deployment Initialized!");
         }
         private void InitializeComponents()
         {
             animator = GetComponentInChildren<Animator>(true);
             LogAnimatorStatus();
-        }
-        private void RegisterActions()
-        {
-            KerbalForgePlugin.Instance._logger.LogInfo("Registering actions for Heat Shield...");
-            AddActionGroupAction(() => State = DeployState.Extended, KSP.Sim.KSPActionGroup.None, "Deploy Heat Shield");
-            AddActionGroupAction(() => State = DeployState.Retracted, KSP.Sim.KSPActionGroup.None, "Retract Heat Shield");
         }
         public void ToggleExtension()
         {
